@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {"type": "integer"},
+    "name": {"type": "string", "maxLength": 200},
+    "status": {"type": "string", "enum": ["active", "inactive", "pending", "archived"]},
+    "email": {"type": "string", "format": "email"},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "age": {"type": "integer", "minimum": 0},
+    "nickname": {"type": "string"}
+  },
+  "required": ["id"],
+  "additionalProperties": true
+}

@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {"type": "string"},
+    "name": {"type": "string", "maxLength": 50},
+    "status": {"type": "string", "enum": ["active", "pending"]},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "age": {"type": "integer", "minimum": 18},
+    "phone": {"type": "string"}
+  },
+  "required": ["id", "name", "phone"],
+  "additionalProperties": false
+}
