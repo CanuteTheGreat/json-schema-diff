@@ -35,7 +35,7 @@ Exit codes:
     2 = usage/parse error
 """
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 import argparse
 import json

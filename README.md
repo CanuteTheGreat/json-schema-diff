@@ -68,7 +68,7 @@ optional response field doesn't.
 
 ```sh
 pipx install git+https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff.git        # latest release branch; puts `json-schema-diff` on PATH
-pipx install git+https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff.git@v1.2.0  # a pinned release
+pipx install git+https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff.git@v1.2.1  # a pinned release
 brew install canutethegreat/errant-tools/json-schema-diff   # after: brew tap canutethegreat/errant-tools https://git.canutethegreat.com/CanuteTheGreat/homebrew-errant-tools
 scoop install errant-tools/json-schema-diff                 # after: scoop bucket add errant-tools https://git.canutethegreat.com/CanuteTheGreat/scoop-errant-tools
 ```
