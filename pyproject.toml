@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "json-schema-diff"
+dynamic = ["version"]
+description = "Classify JSON Schema and OpenAPI changes as breaking, compatible or informational for CI gates"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.8"
+authors = [{ name = "Errant Solutions", email = "hello@errant.solutions" }]
+keywords = ["json-schema", "openapi", "breaking-changes", "api", "ci"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+    "Topic :: System :: Systems Administration",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://errant.solutions/tools/json-schema-diff.html"
+Source = "https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff"
+Changelog = "https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff/src/branch/master/CHANGELOG.md"
+Releases = "https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff/releases"
+
+[project.scripts]
+json-schema-diff = "schema_diff:main"
+
+[tool.hatch.version]
+path = "schema_diff.py"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["schema_diff.py"]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["schema_diff.py", "README.md", "LICENSE", "CHANGELOG.md", "tests"]

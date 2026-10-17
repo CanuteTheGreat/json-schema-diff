@@ -2,7 +2,8 @@
 
 A JSON Schema breaking-change detector, built for API versioning.
 
-Compares two JSON Schema documents (old vs. new) and classifies every
+Compares two JSON Schema documents -- or two **OpenAPI 3.x / Swagger 2.0** specs --
+(old vs. new) and classifies every
 difference as **BREAKING**, **compatible**, or **info** — so you can catch
 an accidental breaking change to your API contract before you ship it,
 instead of finding out from an angry integration partner.
@@ -11,10 +12,13 @@ Zero dependencies (Python stdlib only — `json` + `argparse`), no network
 calls, works entirely offline. Supports the common subset of JSON Schema
 (draft-07 / 2020-12) actually used in real API schemas: `type`,
 `properties`, `required`, `additionalProperties`, `enum`, `items`, `format`,
-`minimum`/`maximum`, `minLength`/`maxLength`, `minItems`/`maxItems`, `pattern`, and
-local `$ref`s (`#/definitions/...`, `#/$defs/...`, including recursive schemas), which
-are followed so a change inside a shared definition is reported at every place it's used.
-Python 3.8+.
+`minimum`/`maximum`, `exclusiveMinimum`/`exclusiveMaximum`, `minLength`/`maxLength`,
+`minItems`/`maxItems`, `pattern`, **`const`**, **`oneOf`/`anyOf`/`allOf`/`not`**,
+**`nullable`** (OpenAPI 3.0), **`dependentRequired`**/`dependencies`, and local `$ref`s (any
+JSON pointer: `#/definitions/...`, `#/$defs/...`, `#/components/schemas/...`, including
+recursive schemas), which are followed so a change inside a shared definition is reported
+at every place it's used. Python 3.8+. Specs in YAML need converting to JSON first
+(e.g. `yq -o json spec.yaml > spec.json`).
 
 ## What it catches
 
@@ -41,18 +45,58 @@ Python 3.8+.
   classified **compatible**
 - `format` hint changes are **info**-only, since most validators only warn
   on format anyway
+- **Composition**: a `oneOf`/`anyOf` variant removed (BREAKING) or added (anyOf:
+  compatible; oneOf: info, because an overlapping new variant makes some documents match
+  twice), an `allOf` subschema added (BREAKING) or removed (compatible), and changes inside
+  a variant -- variants are paired by `$ref` name, `title`, `const`/discriminator value or type
+- `const` added or changed (BREAKING), `null` no longer accepted (`nullable`/`type: null`
+  removed: BREAKING), new `dependentRequired` entries (BREAKING)
+
+### OpenAPI mode
+
+Detected automatically from the `openapi`/`swagger` key. It compares paths and operations
+(removed endpoint/operation: BREAKING), parameters (new required parameter, parameter became
+required, narrower parameter schema: BREAKING), request bodies (became required, content type
+dropped, narrower schema: BREAKING) and responses (2xx response removed: BREAKING). **Request
+schemas are judged from the client's side** (a narrower schema rejects requests that used to
+work) and **response schemas from the consumer's side**: a new enum value, a field no longer
+in `required`, a removed field or a widened type in a response breaks clients, while a new
+optional response field doesn't.
+
+## Install
+
+```sh
+pipx install git+https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff.git        # latest release branch; puts `json-schema-diff` on PATH
+pipx install git+https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff.git@v1.2.0  # a pinned release
+brew install canutethegreat/errant-tools/json-schema-diff   # after: brew tap canutethegreat/errant-tools https://git.canutethegreat.com/CanuteTheGreat/homebrew-errant-tools
+scoop install errant-tools/json-schema-diff                 # after: scoop bucket add errant-tools https://git.canutethegreat.com/CanuteTheGreat/scoop-errant-tools
+```
+
+Or download the single file (stdlib-only Python 3.8+) and run it directly:
+`curl -fsSLO https://errant.solutions/downloads/schema_diff.py && python3 schema_diff.py --help`.
+Every [release](https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff/releases) has a changelog, the wheel, the sdist and a `SHA256SUMS` file.
+Not on PyPI yet, so plain `pipx install json-schema-diff` doesn't work until it's published there.
 
 ## Usage
 
 ```
-./schema_diff.py old_schema.json new_schema.json
-./schema_diff.py old_schema.json new_schema.json --json
-./schema_diff.py old_schema.json new_schema.json --fail-on-breaking   # CI gate
+json-schema-diff old_schema.json new_schema.json
+json-schema-diff old_schema.json new_schema.json --json
+json-schema-diff openapi-v1.json openapi-v2.json                 # OpenAPI/Swagger, detected automatically
+json-schema-diff old.json new.json --markdown >> CHANGELOG.md     # changelog section
+json-schema-diff old.json new.json --fail-on never                # report only
 ```
 
-Exit codes: without `--fail-on-breaking`, always exits `0` (safe to run
-informationally without gating a build). With `--fail-on-breaking`, exits
-`1` if any BREAKING finding is present. Exits `2` on a usage/parse error.
+Exit codes (same convention as every Errant Solutions tool):
+
+| Code | Meaning |
+|---|---|
+| 0 | nothing at or above `--fail-on` (default `breaking`) |
+| 1 | at least one BREAKING change (or any compatible change with `--fail-on compatible`) |
+| 2 | usage/parse error, or one file is OpenAPI and the other a plain schema |
+
+1.x note: the tool used to exit 0 unless `--fail-on-breaking` was given; it now gates on
+BREAKING by default (`--fail-on-breaking` is still accepted).
 
 ## Why this exists
 
@@ -62,3 +106,15 @@ the change shipped, and often traced back to something as small as a field
 quietly becoming `required` or an enum value getting dropped. Running this
 in CI against the last-released schema and the current one turns that into
 a merge-time check instead of a customer-facing incident.
+
+## License / pricing
+
+MIT — see LICENSE. Free; pay what you want if it caught a breaking change for you:
+https://errant.solutions (payment link on the site).
+
+## Tests
+
+`tests/` checks every classification against a real validator (`jsonschema`): each BREAKING
+finding comes with a document the old schema accepts and the new one rejects. OpenAPI mode is
+covered with 3.0 and Swagger 2.0 fixtures. CI runs it on Python 3.8 and current Python, then
+installs the package with pip and checks `--version`/`--help`.
