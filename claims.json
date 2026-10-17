@@ -79,7 +79,8 @@
    "id": "format-info",
    "text": "`format` hint changes are **info**-only",
    "tests": [
-    "tests/test_schema_diff.py::TestInfoAndCli::test_format_and_items_are_info"
+    "tests/test_schema_diff.py::TestInfoAndCli::test_format_and_items_are_info",
+    "tests/test_contract.py::TestOutputs::test_text"
    ]
   },
   {
@@ -88,7 +89,10 @@
    "tests": [
     "tests/test_schema_diff.py::TestKeywords::test_one_of_any_of_variants",
     "tests/test_schema_diff.py::TestKeywords::test_ref_variants_are_paired_by_name",
-    "tests/test_schema_diff.py::TestKeywords::test_all_of"
+    "tests/test_schema_diff.py::TestKeywords::test_all_of",
+    "tests/test_contract.py::TestComposition::test_variants_paired_by_ref",
+    "tests/test_contract.py::TestComposition::test_variants_paired_by_title_type_const_and_discriminator",
+    "tests/test_contract.py::TestComposition::test_keywords_added_and_removed"
    ]
   },
   {
@@ -115,7 +119,11 @@
    "tests": [
     "tests/test_schema_diff.py::TestOpenAPI::test_endpoints_operations_and_parameters",
     "tests/test_schema_diff.py::TestOpenAPI::test_responses_and_content_types",
-    "tests/test_schema_diff.py::TestOpenAPI::test_swagger_2"
+    "tests/test_schema_diff.py::TestOpenAPI::test_swagger_2",
+    "tests/test_contract.py::TestOpenAPI3::test_every_operation_level_change",
+    "tests/test_contract.py::TestSwagger2::test_every_operation_level_change",
+    "tests/test_contract.py::TestSwagger2::test_renaming_the_body_parameter_is_not_a_change",
+    "tests/test_contract.py::TestOpenAPI3::test_identical_specs_and_untouched_references"
    ]
   },
   {
@@ -123,14 +131,16 @@
    "text": "**Request\nschemas are judged from the client's side**",
    "tests": [
     "tests/test_schema_diff.py::TestOpenAPI::test_request_and_response_directions",
-    "tests/test_accuracy.py::TestOracle::test_response_direction"
+    "tests/test_accuracy.py::TestOracle::test_response_direction",
+    "tests/test_contract.py::TestOpenAPI3::test_response_schemas_are_judged_from_the_consumer_side"
    ]
   },
   {
    "id": "json",
    "text": "json-schema-diff old_schema.json new_schema.json --json",
    "tests": [
-    "tests/test_schema_diff.py::TestBreaking::test_type_narrowed_and_changed"
+    "tests/test_schema_diff.py::TestBreaking::test_type_narrowed_and_changed",
+    "tests/test_contract.py::TestOutputs::test_json"
    ],
    "flags": [
     "--json"
@@ -140,7 +150,8 @@
    "id": "markdown",
    "text": "--markdown >> CHANGELOG.md",
    "tests": [
-    "tests/test_schema_diff.py::TestOpenAPI::test_mixed_inputs_and_markdown"
+    "tests/test_schema_diff.py::TestOpenAPI::test_mixed_inputs_and_markdown",
+    "tests/test_contract.py::TestOutputs::test_markdown"
    ],
    "flags": [
     "--markdown"
@@ -152,7 +163,9 @@
    "tests": [
     "tests/test_schema_diff.py::TestInfoAndCli::test_fail_on_breaking_gate_and_default_exit",
     "tests/test_schema_diff.py::TestInfoAndCli::test_parse_and_usage_errors_exit_2",
-    "tests/test_schema_diff.py::TestOpenAPI::test_mixed_inputs_and_markdown"
+    "tests/test_schema_diff.py::TestOpenAPI::test_mixed_inputs_and_markdown",
+    "tests/test_contract.py::TestOutputs::test_exit_codes",
+    "tests/test_contract.py::TestOutputs::test_errors"
    ],
    "flags": [
     "--fail-on",

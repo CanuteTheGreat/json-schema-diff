@@ -2,6 +2,14 @@
 
 All notable changes. Versions are git tags; each tag has a Forgejo release with checksums.
 
+## 1.2.2 - 2026-10-17
+
+- Swagger 2.0: renaming the `in: body` parameter (its name never goes over the wire) is no longer reported as a
+  "new parameter" -- with `required: true` it was a false BREAKING "new required parameter". Request bodies are
+  compared as bodies, as before.
+- Tests: contract suite pinning every OpenAPI 3 / Swagger 2 operation-level finding, oneOf/anyOf/allOf variant
+  pairing (by `$ref`, title, const, discriminator, type) and the text/Markdown/JSON outputs and exit codes.
+
 ## 1.2.1 - 2026-10-17
 
 - `minimum`/`exclusiveMinimum` and `maximum`/`exclusiveMaximum` are judged together: `exclusiveMinimum: 0` -> `minimum: 0` is a relaxation (was reported BREAKING as "minimum newly added"), and a rewrite with the same effect is info.

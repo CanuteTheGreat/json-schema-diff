@@ -35,7 +35,7 @@ Exit codes:
     2 = usage/parse error
 """
 
-__version__ = "1.2.1"
+__version__ = "1.2.2"
 
 import argparse
 import json
@@ -568,6 +568,8 @@ def diff_operation(o, n, oi, ni, path, ctx, sw_o, sw_n):
     req = ctx.child("request")
     op_, np_ = _params(o, oi, ctx.roots[0]), _params(n, ni, ctx.roots[1])
     for key in sorted(set(np_) - set(op_)):
+        if key[0] == "body":  # Swagger 2.0 body parameters: compared as the request body below (name isn't on the wire)
+            continue
         where = f"{path} {key[0]} parameter '{key[1]}'"
         if np_[key].get("required") or key[0] == "path":
             req.add(where, BREAKING, "new required parameter -- existing requests don't send it")
