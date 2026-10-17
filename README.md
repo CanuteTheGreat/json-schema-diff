@@ -11,18 +11,24 @@ Zero dependencies (Python stdlib only — `json` + `argparse`), no network
 calls, works entirely offline. Supports the common subset of JSON Schema
 (draft-07 / 2020-12) actually used in real API schemas: `type`,
 `properties`, `required`, `additionalProperties`, `enum`, `items`, `format`,
-`minimum`/`maximum`, `minLength`/`maxLength`, `minItems`/`maxItems`, `pattern`.
+`minimum`/`maximum`, `minLength`/`maxLength`, `minItems`/`maxItems`, `pattern`, and
+local `$ref`s (`#/definitions/...`, `#/$defs/...`, including recursive schemas), which
+are followed so a change inside a shared definition is reported at every place it's used.
+Python 3.8+.
 
 ## What it catches
 
-- **Type narrowing** — `["string","integer"]` -> `"string"` (BREAKING),
-  or a straight incompatible type swap (BREAKING)
+- **Type narrowing** — `["string","integer"]` -> `"string"` or `number` -> `integer`
+  (BREAKING), a `type` added where there was none (BREAKING), or a straight
+  incompatible type swap (BREAKING); `integer` -> `number` is a widening (compatible)
 - **Newly-required fields** — a field that used to be optional is now
   required; existing producers that omit it will fail validation (BREAKING)
 - **Removed required fields** — a required field disappears entirely;
   any consumer depending on it breaks (BREAKING)
 - **`additionalProperties` tightened to `false`** — previously-accepted
-  extra fields get rejected (BREAKING)
+  extra fields get rejected (BREAKING); removing an optional field from an object
+  with `additionalProperties: false` is BREAKING too (documents still sending it are
+  rejected), while in an open object it's compatible
 - **Enum values removed** — previously-valid values now rejected (BREAKING)
 - **Numeric/length constraints narrowed** — `minimum` raised, `maximum`
   lowered, `maxLength` shortened, etc. (BREAKING); the reverse relaxations

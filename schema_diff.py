@@ -10,7 +10,8 @@ vs. the current one to catch accidental breaking changes before they ship.
 Zero dependencies (Python stdlib only, json + argparse), no network calls,
 works entirely offline. Supports the common subset of JSON Schema draft-07 /
 2020-12 keywords actually used in real API schemas: type, properties,
-required, additionalProperties, enum, items, $ref (shallow), format,
+required, additionalProperties, enum, items, local $ref (#/definitions,
+#/$defs, recursive schemas), format,
 minimum/maximum, minLength/maxLength, pattern.
 
 Usage:
@@ -42,11 +43,11 @@ class Finding:
         self.message = message
 
     def to_dict(self):
-        return {"path": self.path, "severity": self.severity, "message": self.message}
+        return {"path": _fmt_path(self.path), "severity": self.severity, "message": self.message}
 
     def __str__(self):
         tag = {"BREAKING": "BREAKING ", "compatible": "compat   ", "info": "info     "}[self.severity]
-        return f"[{tag}] {self.path}: {self.message}"
+        return f"[{tag}] {_fmt_path(self.path)}: {self.message}"
 
 
 def load_schema(path):
@@ -75,17 +76,30 @@ NUMERIC_NARROWING = {
 def diff_type(old, new, path, findings):
     old_type = old.get("type")
     new_type = new.get("type")
-    if old_type is None or new_type is None:
+    if old_type is None and new_type is None:
+        return
+    if old_type is None:
+        findings.append(Finding(path, BREAKING,
+            f"type constraint newly added ({new_type!r}) -- values of other types now rejected"))
+        return
+    if new_type is None:
+        findings.append(Finding(path, COMPATIBLE, f"type constraint removed (was {old_type!r})"))
         return
     old_set = set(old_type) if isinstance(old_type, list) else {old_type}
     new_set = set(new_type) if isinstance(new_type, list) else {new_type}
     if old_set == new_set:
         return
-    if new_set.issubset(old_set):
+
+    def covers(a, b):
+        # every value of the types in b is accepted by a ("number" includes "integer")
+        a = set(a) | ({"integer"} if "number" in a else set())
+        return set(b) <= a
+
+    if covers(old_set, new_set) and not covers(new_set, old_set):
         findings.append(Finding(path, BREAKING,
             f"type narrowed from {sorted(old_set)} to {sorted(new_set)} "
             f"-- previously-valid values may now be rejected"))
-    elif old_set.issubset(new_set):
+    elif covers(new_set, old_set):
         findings.append(Finding(path, COMPATIBLE,
             f"type widened from {sorted(old_set)} to {sorted(new_set)} "
             f"-- more values now accepted"))
@@ -198,7 +212,37 @@ def diff_format(old, new, path, findings):
         findings.append(Finding(path, INFO, f"format hint changed from {old_f!r} to {new_f!r}"))
 
 
-def diff_schema(old, new, path, findings):
+def resolve_ref(schema, root, seen=()):
+    """Follow a local "$ref" ("#/definitions/X", "#/$defs/X", "#") within root.
+    Sibling keywords next to $ref (allowed in 2020-12) are merged over the target.
+    Returns (schema, refs_followed); cycles and non-local refs are left as-is."""
+    followed = []
+    while isinstance(schema, dict) and isinstance(schema.get("$ref"), str):
+        ref = schema["$ref"]
+        if not ref.startswith("#") or ref in seen or ref in followed:
+            break
+        target = root
+        try:
+            for part in [p for p in ref[1:].split("/") if p]:
+                part = part.replace("~1", "/").replace("~0", "~")
+                target = target[int(part)] if isinstance(target, list) else target[part]
+        except (KeyError, IndexError, ValueError, TypeError):
+            break
+        followed.append(ref)
+        siblings = {k: v for k, v in schema.items() if k != "$ref"}
+        schema = dict(target, **siblings) if isinstance(target, dict) else target
+    return schema, followed
+
+
+def diff_schema(old, new, path, findings, roots=None, seen=()):
+    roots = roots or (old, new)
+    old, old_refs = resolve_ref(old, roots[0])
+    new, new_refs = resolve_ref(new, roots[1])
+    pair = (tuple(old_refs), tuple(new_refs))
+    if (old_refs or new_refs) and pair in seen:
+        return  # recursive definition already being compared further up
+    if old_refs or new_refs:
+        seen = seen + (pair,)
     if not isinstance(old, dict) or not isinstance(new, dict):
         if old != new:
             findings.append(Finding(path, INFO, f"non-object schema fragment changed: {old!r} -> {new!r}"))
@@ -217,12 +261,17 @@ def diff_schema(old, new, path, findings):
     old_names = set(old_props.keys())
     new_names = set(new_props.keys())
 
+    closed = new.get("additionalProperties", True) is False
     for name in sorted(old_names - new_names):
         was_required = name in old.get("required", [])
-        sev = BREAKING if was_required else COMPATIBLE
-        msg = ("required field removed entirely -- any consumer depending on it will break"
-               if was_required else
-               "optional field removed -- consumers that read it will silently get nothing instead of an error")
+        if was_required:
+            sev, msg = BREAKING, "required field removed entirely -- any consumer depending on it will break"
+        elif closed:
+            sev, msg = BREAKING, ("optional field removed while additionalProperties is false -- "
+                                  "documents that still send it are now rejected")
+        else:
+            sev, msg = COMPATIBLE, ("optional field removed -- consumers that read it will silently get "
+                                    "nothing instead of an error")
         findings.append(Finding(_join(path, name), sev, msg))
 
     for name in sorted(new_names - old_names):
@@ -233,12 +282,12 @@ def diff_schema(old, new, path, findings):
             findings.append(Finding(_join(path, name), COMPATIBLE, "new optional field added"))
 
     for name in sorted(old_names & new_names):
-        diff_schema(old_props[name], new_props[name], _join(path, name), findings)
+        diff_schema(old_props[name], new_props[name], _join(path, name), findings, roots, seen)
 
     old_items = old.get("items")
     new_items = new.get("items")
     if old_items is not None and new_items is not None:
-        diff_schema(old_items, new_items, _join(path, "[]"), findings)
+        diff_schema(old_items, new_items, _join(path, "[]"), findings, roots, seen)
     elif old_items is not None and new_items is None:
         findings.append(Finding(_join(path, "[]"), INFO, "items schema removed (array items now unconstrained)"))
     elif old_items is None and new_items is not None:
@@ -258,7 +307,7 @@ def main():
     try:
         old = load_schema(args.old_schema)
         new = load_schema(args.new_schema)
-    except (OSError, json.JSONDecodeError) as e:
+    except (OSError, ValueError) as e:  # ValueError covers bad JSON and bad UTF-8
         print(f"error: {e}", file=sys.stderr)
         return 2
 
