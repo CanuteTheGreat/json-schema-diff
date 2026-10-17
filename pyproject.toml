@@ -46,4 +46,4 @@ only-include = ["schema_diff.py", "README.md", "LICENSE", "CHANGELOG.md", "tests
 # ci/mutation.sh (nightly workflow)
 source_paths = ["schema_diff.py"]
 pytest_add_cli_args_test_selection = ["tests/"]
-also_copy = ["claims.json", "ci/check_claims.py", "README.md", "CHANGELOG.md", "old_schema.json", "new_schema_breaking.json", "new_schema_compatible.json"]
+also_copy = ["claims.json", "ci", "README.md", "CHANGELOG.md", "old_schema.json", "new_schema_breaking.json", "new_schema_compatible.json"]
