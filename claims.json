@@ -1,0 +1,237 @@
+{
+ "offline": true,
+ "optional_imports": [],
+ "hidden_options": [
+  "--fail-on-breaking"
+ ],
+ "claims": [
+  {
+   "id": "type-narrowing",
+   "text": "Type narrowing",
+   "tests": [
+    "tests/test_schema_diff.py::TestBreaking::test_type_narrowed_and_changed",
+    "tests/test_schema_diff.py::TestBreaking::test_type_newly_added",
+    "tests/test_schema_diff.py::TestCompatible::test_type_widened_including_integer_to_number",
+    "tests/test_accuracy.py::TestOracle::test_request_direction"
+   ]
+  },
+  {
+   "id": "newly-required",
+   "text": "Newly-required fields",
+   "tests": [
+    "tests/test_schema_diff.py::TestBreaking::test_newly_required",
+    "tests/test_schema_diff.py::TestBreaking::test_new_required_field",
+    "tests/test_accuracy.py::TestOracle::test_request_direction"
+   ]
+  },
+  {
+   "id": "removed-required",
+   "text": "Removed required fields",
+   "tests": [
+    "tests/test_schema_diff.py::TestBreaking::test_required_field_removed",
+    "tests/test_accuracy.py::TestOracle::test_request_direction"
+   ]
+  },
+  {
+   "id": "additional-properties",
+   "text": "`additionalProperties` tightened to `false`",
+   "tests": [
+    "tests/test_schema_diff.py::TestBreaking::test_additional_properties_closed",
+    "tests/test_schema_diff.py::TestBreaking::test_optional_field_removed_from_closed_object",
+    "tests/test_schema_diff.py::TestCompatible::test_new_optional_and_removed_optional_in_open_object"
+   ]
+  },
+  {
+   "id": "enum-removed",
+   "text": "Enum values removed",
+   "tests": [
+    "tests/test_schema_diff.py::TestBreaking::test_enum_removed_and_added_constraint",
+    "tests/test_accuracy.py::TestOracle::test_response_direction"
+   ]
+  },
+  {
+   "id": "numeric-narrowed",
+   "text": "Numeric/length constraints narrowed",
+   "tests": [
+    "tests/test_schema_diff.py::TestBreaking::test_numeric_and_length_narrowing",
+    "tests/test_schema_diff.py::TestCompatible::test_relaxations",
+    "tests/test_accuracy.py::TestOracle::test_request_direction",
+    "tests/test_accuracy.py::TestOracle::test_reverse_edits"
+   ]
+  },
+  {
+   "id": "pattern",
+   "text": "Pattern changed",
+   "tests": [
+    "tests/test_schema_diff.py::TestBreaking::test_pattern_added_or_changed"
+   ]
+  },
+  {
+   "id": "compatible-opposites",
+   "text": "Everything with the opposite effect",
+   "tests": [
+    "tests/test_schema_diff.py::TestCompatible::test_relaxations",
+    "tests/test_schema_diff.py::TestCompatible::test_type_removed",
+    "tests/test_accuracy.py::TestOracle::test_reverse_edits"
+   ]
+  },
+  {
+   "id": "format-info",
+   "text": "`format` hint changes are **info**-only",
+   "tests": [
+    "tests/test_schema_diff.py::TestInfoAndCli::test_format_and_items_are_info"
+   ]
+  },
+  {
+   "id": "composition",
+   "text": "Composition",
+   "tests": [
+    "tests/test_schema_diff.py::TestKeywords::test_one_of_any_of_variants",
+    "tests/test_schema_diff.py::TestKeywords::test_ref_variants_are_paired_by_name",
+    "tests/test_schema_diff.py::TestKeywords::test_all_of"
+   ]
+  },
+  {
+   "id": "const-nullable-depreq",
+   "text": "`const` added or changed (BREAKING), `null` no longer accepted",
+   "tests": [
+    "tests/test_schema_diff.py::TestKeywords::test_const",
+    "tests/test_schema_diff.py::TestKeywords::test_openapi_30_nullable",
+    "tests/test_schema_diff.py::TestKeywords::test_dependent_required"
+   ]
+  },
+  {
+   "id": "refs",
+   "text": "local `$ref`s",
+   "tests": [
+    "tests/test_schema_diff.py::TestBreaking::test_local_refs_definitions_and_defs",
+    "tests/test_schema_diff.py::TestBreaking::test_ref_replaced_by_inline_schema",
+    "tests/test_schema_diff.py::TestBreaking::test_recursive_schema_terminates"
+   ]
+  },
+  {
+   "id": "openapi",
+   "text": "Detected automatically from the `openapi`/`swagger` key",
+   "tests": [
+    "tests/test_schema_diff.py::TestOpenAPI::test_endpoints_operations_and_parameters",
+    "tests/test_schema_diff.py::TestOpenAPI::test_responses_and_content_types",
+    "tests/test_schema_diff.py::TestOpenAPI::test_swagger_2"
+   ]
+  },
+  {
+   "id": "directions",
+   "text": "**Request\nschemas are judged from the client's side**",
+   "tests": [
+    "tests/test_schema_diff.py::TestOpenAPI::test_request_and_response_directions",
+    "tests/test_accuracy.py::TestOracle::test_response_direction"
+   ]
+  },
+  {
+   "id": "json",
+   "text": "json-schema-diff old_schema.json new_schema.json --json",
+   "tests": [
+    "tests/test_schema_diff.py::TestBreaking::test_type_narrowed_and_changed"
+   ],
+   "flags": [
+    "--json"
+   ]
+  },
+  {
+   "id": "markdown",
+   "text": "--markdown >> CHANGELOG.md",
+   "tests": [
+    "tests/test_schema_diff.py::TestOpenAPI::test_mixed_inputs_and_markdown"
+   ],
+   "flags": [
+    "--markdown"
+   ]
+  },
+  {
+   "id": "exit-codes",
+   "text": "Exit codes (same convention as every Errant Solutions tool)",
+   "tests": [
+    "tests/test_schema_diff.py::TestInfoAndCli::test_fail_on_breaking_gate_and_default_exit",
+    "tests/test_schema_diff.py::TestInfoAndCli::test_parse_and_usage_errors_exit_2",
+    "tests/test_schema_diff.py::TestOpenAPI::test_mixed_inputs_and_markdown"
+   ],
+   "flags": [
+    "--fail-on",
+    "--fail-on-breaking"
+   ]
+  },
+  {
+   "id": "version-help",
+   "text": "checks `--version`/`--help`",
+   "tests": [
+    "tests/test_schema_diff.py::TestOpenAPI::test_version",
+    "tests/test_claims.py::TestClaims::test_version_is_latest_changelog_entry",
+    "tests/test_claims.py::TestClaims::test_readme_options_exist"
+   ],
+   "flags": [
+    "--version",
+    "--help"
+   ]
+  },
+  {
+   "id": "stdlib-only",
+   "text": "Zero dependencies (Python stdlib only",
+   "tests": [
+    "tests/test_claims.py::TestClaims::test_stdlib_only"
+   ]
+  },
+  {
+   "id": "offline",
+   "text": "no network\ncalls, works entirely offline",
+   "tests": [
+    "tests/test_claims.py::TestClaims::test_offline_claim"
+   ]
+  },
+  {
+   "id": "python-versions",
+   "text": "Python 3.8+",
+   "tests": [
+    ".forgejo/workflows/test.yml#\"3.8\"",
+    ".forgejo/workflows/nightly.yml#\"3.8\""
+   ]
+  },
+  {
+   "id": "install-pipx",
+   "text": "pipx install git+https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff.git",
+   "tests": [
+    "ci/install-channels.sh#pipx install -q \"git+$FORGEJO/CanuteTheGreat/$REPO.git\"",
+    ".forgejo/workflows/nightly.yml#ci/install-channels.sh"
+   ]
+  },
+  {
+   "id": "install-homebrew",
+   "text": "brew install canutethegreat/errant-tools/json-schema-diff",
+   "tests": [
+    "repo:homebrew-errant-tools/Formula/json-schema-diff.rb#test do",
+    "repo:homebrew-errant-tools/.forgejo/workflows/test.yml#ci/run-tests.sh"
+   ]
+  },
+  {
+   "id": "install-scoop",
+   "text": "scoop install errant-tools/json-schema-diff",
+   "tests": [
+    "repo:scoop-errant-tools/bucket/json-schema-diff.json#\"bin\"",
+    "repo:scoop-errant-tools/.forgejo/workflows/test.yml#ci/run-tests.sh"
+   ]
+  },
+  {
+   "id": "install-download",
+   "text": "https://errant.solutions/downloads/schema_diff.py",
+   "tests": [
+    "ci/install-channels.sh#https://errant.solutions/downloads/$FILE"
+   ]
+  },
+  {
+   "id": "release-assets",
+   "text": "`SHA256SUMS` file",
+   "tests": [
+    "ci/install-channels.sh#sha256sum -c SHA256SUMS",
+    "ci/release.py#SHA256SUMS"
+   ]
+  }
+ ]
+}

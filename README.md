@@ -36,7 +36,8 @@ at every place it's used. Python 3.8+. Specs in YAML need converting to JSON fir
 - **Enum values removed** — previously-valid values now rejected (BREAKING)
 - **Numeric/length constraints narrowed** — `minimum` raised, `maximum`
   lowered, `maxLength` shortened, etc. (BREAKING); the reverse relaxations
-  are flagged as compatible
+  are flagged as compatible. `minimum`/`exclusiveMinimum` (and the maximum pair) are judged
+  together, so `exclusiveMinimum: 0` -> `minimum: 0` is a relaxation
 - **Pattern changed** — treated conservatively as BREAKING unless it's
   unchanged, since proving one regex is a strict superset of another is
   out of scope for a stdlib tool
@@ -114,7 +115,11 @@ https://errant.solutions (payment link on the site).
 
 ## Tests
 
-`tests/` checks every classification against a real validator (`jsonschema`): each BREAKING
-finding comes with a document the old schema accepts and the new one rejects. OpenAPI mode is
+`tests/` checks every classification against a real validator (`jsonschema`): each
+validation-level BREAKING finding comes with a document the old schema accepts and the new one
+rejects, and `tests/test_accuracy.py` runs ~30 single-keyword edits in both directions (request
+and response) against a document pool, failing on any false negative or false positive. The
+contract conventions above (a removed required field, a removed response field, a new optional
+field, extra response fields) are asserted explicitly there. OpenAPI mode is
 covered with 3.0 and Swagger 2.0 fixtures. CI runs it on Python 3.8 and current Python, then
 installs the package with pip and checks `--version`/`--help`.

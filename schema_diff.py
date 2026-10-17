@@ -234,9 +234,57 @@ def diff_dependent_required(old, new, path, ctx):
             ctx.add(_join(path, key), COMPATIBLE, f"'{key}' no longer requires {sorted(removed)}")
 
 
+def _bound(schema, inclusive_key, exclusive_key, lower):
+    """Effective numeric bound as (value, exclusive), or None (draft-06+ numeric exclusive*):
+    the stricter of the inclusive and the exclusive keyword when both are given."""
+    best = None
+    for key, excl in ((inclusive_key, False), (exclusive_key, True)):
+        v = schema.get(key)
+        if not isinstance(v, (int, float)) or isinstance(v, bool):
+            continue
+        if best is None or (v > best[0] if lower else v < best[0]):
+            best = (v, excl)
+        elif v == best[0]:
+            best = (v, best[1] or excl)
+    return best
+
+
+def diff_numeric_bounds(old, new, path, ctx):
+    """minimum/exclusiveMinimum (and maximum/exclusiveMaximum) judged together, so replacing
+    `exclusiveMinimum: 0` with `minimum: 0` is a relaxation, not 'minimum newly added'."""
+    for inc, exc, lower in (("minimum", "exclusiveMinimum", True), ("maximum", "exclusiveMaximum", False)):
+        if old.get(inc) == new.get(inc) and old.get(exc) == new.get(exc):
+            continue
+        if any(isinstance(sch.get(k), bool) for sch in (old, new) for k in (inc, exc)):
+            continue  # draft-04 boolean exclusive*: reported as info by diff_numeric_constraints
+        ob, nb = _bound(old, inc, exc, lower), _bound(new, inc, exc, lower)
+        name = lambda b: exc if b[1] else inc  # noqa: E731
+        if ob == nb:
+            ctx.add(path, INFO, f"{inc}/{exc} rewritten with the same effect ({name(ob)} {ob[0]})")
+        elif ob is None:
+            ctx.add(path, BREAKING, f"{name(nb)} constraint newly added ({nb[0]}) -- may reject previously-valid values")
+        elif nb is None:
+            ctx.add(path, COMPATIBLE, f"{name(ob)} constraint removed (was {ob[0]})")
+        else:
+            narrower = (nb[0] > ob[0] if lower else nb[0] < ob[0]) or (nb[0] == ob[0] and nb[1] and not ob[1])
+            if name(ob) == name(nb):
+                change = f"{name(nb)} {'narrowed' if narrower else 'relaxed'} from {ob[0]} to {nb[0]}"
+            else:
+                change = (f"{'lower' if lower else 'upper'} bound {'narrowed' if narrower else 'relaxed'} from "
+                          f"{name(ob)} {ob[0]} to {name(nb)} {nb[0]}")
+            if narrower:
+                ctx.add(path, BREAKING, change + " -- some previously-valid values now rejected")
+            else:
+                ctx.add(path, COMPATIBLE, change)
+
+
 def diff_numeric_constraints(old, new, path, ctx):
+    diff_numeric_bounds(old, new, path, ctx)
     for key, is_narrowing in NUMERIC_NARROWING.items():
         o, n = old.get(key), new.get(key)
+        if key in ("minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum") and not (
+                isinstance(o, bool) or isinstance(n, bool)):
+            continue  # judged together by diff_numeric_bounds
         if isinstance(o, bool) or isinstance(n, bool):  # draft-04 boolean exclusiveMinimum: compare as info
             if o != n:
                 ctx.add(path, INFO, f"{key} changed from {o!r} to {n!r}")
