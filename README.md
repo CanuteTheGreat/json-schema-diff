@@ -17,7 +17,10 @@ calls, works entirely offline. Supports the common subset of JSON Schema
 **`nullable`** (OpenAPI 3.0), **`dependentRequired`**/`dependencies`, and local `$ref`s (any
 JSON pointer: `#/definitions/...`, `#/$defs/...`, `#/components/schemas/...`, including
 recursive schemas), which are followed so a change inside a shared definition is reported
-at every place it's used. Python 3.8+. Specs in YAML need converting to JSON first
+at every place it's used. **`$ref`s to other files** work the same way
+(`common.json#/$defs/Id`, `./schemas/user.json`, resolved relative to the file that contains
+them, also between files and in OpenAPI specs split into several files); remote `http(s)://`
+refs are never fetched. Python 3.8+. Specs in YAML need converting to JSON first
 (e.g. `yq -o json spec.yaml > spec.json`).
 
 ## What it catches

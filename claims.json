@@ -110,7 +110,19 @@
    "tests": [
     "tests/test_schema_diff.py::TestBreaking::test_local_refs_definitions_and_defs",
     "tests/test_schema_diff.py::TestBreaking::test_ref_replaced_by_inline_schema",
-    "tests/test_schema_diff.py::TestBreaking::test_recursive_schema_terminates"
+    "tests/test_schema_diff.py::TestBreaking::test_recursive_schema_terminates",
+    "tests/test_schema_diff.py::TestExternalRefs::test_a_change_inside_a_referenced_file_is_reported_where_it_is_used",
+    "tests/test_schema_diff.py::TestExternalRefs::test_identical_trees_and_refs_between_files_that_loop"
+   ]
+  },
+  {
+   "id": "file-refs",
+   "text": "**`$ref`s to other files**",
+   "tests": [
+    "tests/test_schema_diff.py::TestExternalRefs::test_a_change_inside_a_referenced_file_is_reported_where_it_is_used",
+    "tests/test_schema_diff.py::TestExternalRefs::test_identical_trees_and_refs_between_files_that_loop",
+    "tests/test_schema_diff.py::TestExternalRefs::test_openapi_components_in_a_separate_file",
+    "tests/test_schema_diff.py::TestExternalRefs::test_a_missing_referenced_file_is_a_usage_error_and_remote_refs_are_never_fetched"
    ]
   },
   {

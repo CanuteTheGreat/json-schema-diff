@@ -10,9 +10,10 @@ breaking changes before they ship.
 
 Zero dependencies (Python stdlib only, json + argparse), no network calls,
 works entirely offline. JSON Schema keywords understood: type, properties,
-required, additionalProperties, enum, const, items, local $ref (any JSON
+required, additionalProperties, enum, const, items, $ref (any JSON
 pointer, incl. #/definitions, #/$defs, #/components/schemas, recursive
-schemas), oneOf / anyOf / allOf / not, nullable (OpenAPI 3.0),
+schemas, and refs to other local files such as common.json#/$defs/X; remote
+http(s) refs are not fetched), oneOf / anyOf / allOf / not, nullable (OpenAPI 3.0),
 dependentRequired / dependencies, format, minimum/maximum,
 exclusiveMinimum/exclusiveMaximum, minLength/maxLength, minItems/maxItems,
 pattern. YAML specs need converting to JSON first (e.g. `yq -o json`).
@@ -35,10 +36,11 @@ Exit codes:
     2 = usage/parse error
 """
 
-__version__ = "1.2.2"
+__version__ = "1.3.0"
 
 import argparse
 import json
+import os
 import sys
 
 BREAKING = "BREAKING"
@@ -78,9 +80,69 @@ class Ctx:
         return Ctx(self.findings, self.roots, direction or self.direction)
 
 
+# Where load_schema() puts the other files a document $refs, so every reference becomes
+# a JSON pointer into one document that resolve_ref already follows.
+EXTERNAL_KEY = "x-json-schema-diff-external"
+
+
+def _pointer_escape(key):
+    return key.replace("~", "~0").replace("/", "~1")
+
+
 def load_schema(path):
-    with open(path) as f:
-        return json.load(f)
+    """Load a JSON document and bundle every file it references.
+
+    A "$ref" to another local file ("common.json", "defs/user.json#/$defs/User", relative
+    to the file that contains it) is loaded and placed under EXTERNAL_KEY, keyed by its
+    path relative to the top-level document, and the reference is rewritten to point
+    there; references inside that file are rewritten the same way, so shared and
+    recursive definitions across files work like local ones. Remote refs (http:, https:,
+    urn:...) are never fetched -- the tool stays offline -- and are left as they are,
+    like anchors ("#name"). A referenced file that is missing or not JSON is an error.
+    """
+    root_file = os.path.abspath(path)
+    root_dir = os.path.dirname(root_file)
+    with open(root_file) as f:
+        doc = json.load(f)
+    external = {}
+
+    def key_for(file):
+        return os.path.relpath(file, root_dir).replace(os.sep, "/")
+
+    def rewrite_ref(ref, cur_file):
+        if ref.startswith("#"):
+            if cur_file == root_file or not (ref == "#" or ref.startswith("#/")):
+                return ref
+            return "#/" + EXTERNAL_KEY + "/" + _pointer_escape(key_for(cur_file)) + ref[1:]
+        file_part, _, fragment = ref.partition("#")
+        if not file_part or ":" in file_part.split("/")[0] or (fragment and not fragment.startswith("/")):
+            return ref  # remote URI or a plain-name anchor: not followed
+        target = os.path.normpath(os.path.join(os.path.dirname(cur_file), file_part))
+        if target == root_file:
+            return "#" + fragment
+        key = key_for(target)
+        if key not in external:
+            external[key] = None  # reserve first: a file that refers back to itself or a parent
+            with open(target) as f:
+                try:
+                    loaded = json.load(f)
+                except ValueError as e:
+                    raise ValueError(f"{target} (referenced by {cur_file}): {e}")
+            external[key] = rewrite(loaded, target)
+        return "#/" + EXTERNAL_KEY + "/" + _pointer_escape(key) + fragment
+
+    def rewrite(node, cur_file):
+        if isinstance(node, dict):
+            return {k: (rewrite_ref(v, cur_file) if k == "$ref" and isinstance(v, str) else rewrite(v, cur_file))
+                    for k, v in node.items()}
+        if isinstance(node, list):
+            return [rewrite(v, cur_file) for v in node]
+        return node
+
+    doc = rewrite(doc, root_file)
+    if external and isinstance(doc, dict):
+        doc[EXTERNAL_KEY] = external
+    return doc
 
 
 def _fmt_path(path):

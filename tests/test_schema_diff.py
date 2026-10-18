@@ -172,6 +172,86 @@ class TestBreaking(Case):
         self.assertEqual(len(r["breaking"]), 1, r)
 
 
+class TestExternalRefs(unittest.TestCase):
+    """$refs to other local files: each test writes an old/ and a new/ directory with the
+    same file layout, like two checkouts of an API's schema folder."""
+
+    def tree(self, files):
+        d = tempfile.mkdtemp()
+        self.addCleanup(__import__("shutil").rmtree, d)
+        for name, content in files.items():
+            os.makedirs(os.path.dirname(os.path.join(d, name)), exist_ok=True)
+            with open(os.path.join(d, name), "w") as f:
+                f.write(content if isinstance(content, str) else json.dumps(content))
+        return d
+
+    def run_trees(self, old_files, new_files, root="root.json"):
+        old_dir, new_dir = self.tree(old_files), self.tree(new_files)
+        return run(os.path.join(old_dir, root), os.path.join(new_dir, root), "--json")
+
+    @staticmethod
+    def valid_with(files, doc, root="root.json"):
+        """Real validation: jsonschema resolves the same file refs through a registry."""
+        from referencing import Registry, Resource
+        from referencing.jsonschema import DRAFT202012
+        registry = Registry().with_resources(
+            (name, Resource.from_contents(c, default_specification=DRAFT202012)) for name, c in files.items() if name != root)
+        return Draft202012Validator(files[root], registry=registry).is_valid(doc)
+
+    def test_a_change_inside_a_referenced_file_is_reported_where_it_is_used(self):
+        root = {"type": "object", "properties": {"user": {"$ref": "defs/user.json"},
+                                                  "owner": {"$ref": "defs/user.json#/properties/name"}}}
+        old_user = {"type": "object", "properties": {"name": {"type": ["string", "null"]}, "id": {"$ref": "common.json#/$defs/Id"}}}
+        new_user = {"type": "object", "properties": {"name": {"type": "string"}, "id": {"$ref": "common.json#/$defs/Id"}}}
+        old_common = {"$defs": {"Id": {"type": ["integer", "string"]}}}
+        new_common = {"$defs": {"Id": {"type": "integer"}}}
+        old = {"root.json": root, "defs/user.json": old_user, "defs/common.json": old_common}
+        new = {"root.json": root, "defs/user.json": new_user, "defs/common.json": new_common}
+        witness = {"user": {"name": None, "id": "x"}, "owner": None}
+        self.assertTrue(self.valid_with(old, witness))
+        self.assertFalse(self.valid_with(new, witness))
+        p = self.run_trees(old, new)
+        self.assertEqual(p.returncode, 1, p.stdout + p.stderr)
+        found = {(f["path"], f["message"]) for f in json.loads(p.stdout)["breaking"]}
+        paths = {path for path, _ in found}
+        self.assertTrue({"user.name", "user.id", "owner"} <= paths, found)
+        self.assertTrue(all("null no longer accepted" in m or "type narrowed" in m for _, m in found), found)
+
+    def test_identical_trees_and_refs_between_files_that_loop(self):
+        files = {"root.json": {"$ref": "node.json"},
+                 "node.json": {"type": "object", "properties": {"next": {"$ref": "node.json"}, "leaf": {"$ref": "leaf.json"}}},
+                 "leaf.json": {"type": "object", "properties": {"up": {"$ref": "node.json"}, "v": {"type": "integer"}}}}
+        p = self.run_trees(files, files)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+        self.assertEqual(json.loads(p.stdout)["summary"], {"breaking": 0, "compatible": 0, "info": 0})
+        new = json.loads(json.dumps(files))
+        new["leaf.json"]["properties"]["v"]["maximum"] = 3
+        p = self.run_trees(files, new)
+        self.assertEqual(p.returncode, 1, p.stdout + p.stderr)
+        self.assertIn("leaf.v", {f["path"] for f in json.loads(p.stdout)["breaking"]})
+
+    def test_openapi_components_in_a_separate_file(self):
+        def spec(schemas_file):
+            return {"openapi": "3.0.3", "info": {"title": "t", "version": "1"}, "paths": {"/u": {"post": {
+                "requestBody": {"required": True, "content": {"application/json": {"schema": {"$ref": schemas_file + "#/User"}}}},
+                "responses": {"200": {"description": "ok"}}}}}}
+        old = {"api.json": spec("schemas.json"), "schemas.json": {"User": {"type": "object", "properties": {"age": {"type": "integer"}}}}}
+        new = {"api.json": spec("schemas.json"), "schemas.json": {"User": {"type": "object", "properties": {"age": {"type": "integer", "minimum": 18}}}}}
+        p = self.run_trees(old, new, root="api.json")
+        self.assertEqual(p.returncode, 1, p.stdout + p.stderr)
+        self.assertTrue(any("minimum" in f["message"] for f in json.loads(p.stdout)["breaking"]), p.stdout)
+
+    def test_a_missing_referenced_file_is_a_usage_error_and_remote_refs_are_never_fetched(self):
+        files = {"root.json": {"type": "object", "properties": {"a": {"$ref": "missing.json"}}}}
+        p = self.run_trees(files, files)
+        self.assertEqual(p.returncode, 2, p.stdout + p.stderr)
+        self.assertIn("missing.json", p.stderr)
+        # .invalid never resolves; the tool must not even try (it has no network code at all).
+        files = {"root.json": {"type": "object", "properties": {"a": {"$ref": "https://schemas.example.invalid/a.json"}}}}
+        p = self.run_trees(files, files)
+        self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+
+
 class TestCompatible(Case):
     def test_type_widened_including_integer_to_number(self):
         self.assert_compatible(obj({"v": {"type": "string"}}), obj({"v": {"type": ["string", "null"]}}),

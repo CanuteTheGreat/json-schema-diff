@@ -2,6 +2,13 @@
 
 All notable changes. Versions are git tags; each tag has a Forgejo release with checksums.
 
+## 1.3.0 - 2026-10-18
+
+- **`$ref`s to other local files** (`common.json#/$defs/Id`, `./schemas/user.json`, refs between those files,
+  loops included): they're resolved relative to the file that contains them, so a schema or OpenAPI spec split
+  across files is compared as a whole and a change in a shared file is reported where it's used. A missing
+  referenced file exits 2. Remote `http(s)://` refs are still never fetched (the tool stays offline).
+
 ## 1.2.2 - 2026-10-17
 
 - Swagger 2.0: renaming the `in: body` parameter (its name never goes over the wire) is no longer reported as a
