@@ -36,7 +36,7 @@ Exit codes:
     2 = usage/parse error
 """
 
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 
 import argparse
 import json
@@ -706,7 +706,9 @@ def main(argv=None):
     parser.add_argument("--markdown", action="store_true", help="emit a Markdown changelog section")
     parser.add_argument("--fail-on", choices=["breaking", "compatible", "never"], default="breaking",
                         help="exit 1 on BREAKING changes (default), on any non-info change, or never")
-    parser.add_argument("--fail-on-breaking", action="store_true", help=argparse.SUPPRESS)  # 1.x flag, now the default
+    parser.add_argument("--fail-on-breaking", action="store_true",
+                        help="1.x flag, kept as an alias: exit 1 on BREAKING changes (already the default; "
+                             "with --fail-on never it still gates on BREAKING)")
     parser.add_argument("--quiet-info", action="store_true", help="suppress informational findings in text output")
     args = parser.parse_args(argv)
 

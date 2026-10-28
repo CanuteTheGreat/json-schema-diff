@@ -306,6 +306,13 @@ class TestInfoAndCli(Case):
         self.assertEqual(p.returncode, 0, p.stdout)
         self.assertIn("Summary: 0 breaking", p.stdout)
 
+    def test_help_documents_fail_on_breaking_alias(self):
+        p = run("--help")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        text = " ".join(p.stdout.split())
+        self.assertIn("--fail-on-breaking", text)
+        self.assertIn("1.x flag, kept as an alias", text)
+
     def test_fail_on_breaking_gate_and_default_exit(self):
         old, new = obj({"a": {}}), obj({"a": {}}, ["a"])
         self.assertEqual(diff(old, new).returncode, 1)                        # a CI gate by default

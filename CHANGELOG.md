@@ -2,6 +2,10 @@
 
 All notable changes. Versions are git tags; each tag has a Forgejo release with checksums.
 
+## 1.3.1 - 2026-10-28
+
+- `--fail-on-breaking` (the 1.x flag) is now listed in `--help` as a documented alias for the default gate; behaviour unchanged.
+
 ## 1.3.0 - 2026-10-18
 
 - **`$ref`s to other local files** (`common.json#/$defs/Id`, `./schemas/user.json`, refs between those files,
