@@ -138,5 +138,18 @@ EOF
 if [ $rc = 0 ]; then
   mkdir -p .mutation-baseline
   docker cp "$NAME:/src/.mutation-baseline/$MUT_ID" .mutation-baseline/ 2>/dev/null || true
+  # The gate ran inside the container, where GITHUB_ACTIONS is unset, so its store_push() was a no-op:
+  # a green full run never reached the shared mutation-baseline branch and the next plan step's
+  # store_pull() restored the stale one (survivors=[], last_full=null -> every old survivor "new",
+  # json-schema-diff 2026-11-10). Publish from the host, where the CI env is set.
+  if [ -f ".mutation-baseline/$MUT_ID/baseline.json" ]; then
+    python3 - "$MUT_ID" <<'PYEOF' || echo "::warning::mutation baseline publish failed"
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("mi", "ci/mutation-incremental.py")
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+m.store_push(sys.argv[1])
+PYEOF
+  fi
 fi
 exit $rc

@@ -280,11 +280,14 @@ def cmd_plan(a):
         print(f"mutation {a.id}: FULL run (code changed and no baseline yet: this run becomes it)")
         return
     if not diff.strip() or (a.kind == "pit" and not targets):
-        nb = dict(b or {}, id=a.id, sha=head)
-        nb.setdefault("survivors", [])
-        nb.setdefault("last_full", None)
-        save(a.id, nb)
-        store_push(a.id)
+        # never create a baseline from a skip: it would hold survivors=[] / last_full=null and make
+        # every old survivor "new" on the next incremental run (only a full run may create one)
+        if b:
+            nb = dict(b, id=a.id, sha=head)
+            nb.setdefault("survivors", [])
+            nb.setdefault("last_full", None)
+            save(a.id, nb)
+            store_push(a.id)
         export(MUT_MODE="skip", MUT_BASE=base, MUT_DIFF=diff_path, MUT_CHANGED=changed_path, MUT_TARGETS="", MUT_STATE=sd)
         print(f"mutation {a.id}: SKIP - nothing it mutates changed since {base[:10]} ({why}); baseline -> {head[:10]}")
         return
