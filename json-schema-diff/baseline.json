@@ -1,7 +1,7 @@
 {
  "id": "json-schema-diff",
  "last_full": "2026-11-14",
- "sha": "e649aa45d0fd74d76425a9877c0fd66b42904e09",
+ "sha": "13c0f480fcffaeeb85d3d28db630427b25909ec5",
  "survivors": [
   "schema_diff.x__bound__mutmut_11",
   "schema_diff.x__bound__mutmut_12",
