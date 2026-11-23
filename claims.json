@@ -152,7 +152,9 @@
    "text": "json-schema-diff old_schema.json new_schema.json --json",
    "tests": [
     "tests/test_schema_diff.py::TestBreaking::test_type_narrowed_and_changed",
-    "tests/test_contract.py::TestOutputs::test_json"
+    "tests/test_contract.py::TestOutputs::test_json",
+    "tests/test_cli_contract.py::TestJson::test_clean",
+    "tests/test_cli_contract.py::TestJson::test_findings"
    ],
    "flags": [
     "--json"
@@ -171,17 +173,48 @@
   },
   {
    "id": "exit-codes",
-   "text": "Exit codes (same convention as every Errant Solutions tool)",
+   "text": "Exit codes (the shared Errant Solutions CLI contract",
    "tests": [
     "tests/test_schema_diff.py::TestInfoAndCli::test_fail_on_breaking_gate_and_default_exit",
     "tests/test_schema_diff.py::TestInfoAndCli::test_parse_and_usage_errors_exit_2",
     "tests/test_schema_diff.py::TestOpenAPI::test_mixed_inputs_and_markdown",
     "tests/test_contract.py::TestOutputs::test_exit_codes",
-    "tests/test_contract.py::TestOutputs::test_errors"
+    "tests/test_contract.py::TestOutputs::test_errors",
+    "tests/test_cli_contract.py::TestExitCodes::test_clean_is_0",
+    "tests/test_cli_contract.py::TestExitCodes::test_findings_is_1",
+    "tests/test_cli_contract.py::TestExitCodes::test_compatible_change_only_fails_with_fail_on_compatible",
+    "tests/test_cli_contract.py::TestExitCodes::test_fail_on_never_is_0",
+    "tests/test_cli_contract.py::TestExitCodes::test_bad_args_is_2_with_message_on_stderr",
+    "tests/test_cli_contract.py::TestExitCodes::test_missing_file_is_2",
+    "tests/test_cli_contract.py::TestExitCodes::test_invalid_json_is_2",
+    "tests/test_cli_contract.py::TestExitCodes::test_unexpected_error_is_3_on_stderr_not_a_traceback_exit_1"
    ],
    "flags": [
     "--fail-on",
     "--fail-on-breaking"
+   ]
+  },
+  {
+   "id": "quiet",
+   "text": "`--quiet` (`-q`) prints nothing on stdout, so the",
+   "flags": [
+    "--quiet"
+   ],
+   "tests": [
+    "tests/test_cli_contract.py::TestQuiet::test_quiet_prints_nothing_but_keeps_exit_code",
+    "tests/test_cli_contract.py::TestQuiet::test_quiet_info_is_a_different_option_and_still_prints",
+    "tests/test_cli_contract.py::TestQuiet::test_without_quiet_the_report_is_printed"
+   ]
+  },
+  {
+   "id": "json-schema",
+   "text": "`schema_version` (currently 1)",
+   "tests": [
+    "tests/test_cli_contract.py::TestJson::test_clean",
+    "tests/test_cli_contract.py::TestJson::test_findings",
+    "tests/test_cli_contract.py::TestJson::test_fail_on_never_reports_the_gate_result_in_exit_code",
+    "tests/test_cli_contract.py::TestJson::test_usage_and_input_errors_leave_stdout_empty",
+    "tests/test_cli_contract.py::TestJson::test_schema_rejects_a_document_without_the_contract_keys"
    ]
   },
   {

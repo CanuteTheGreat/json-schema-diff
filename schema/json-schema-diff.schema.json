@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "json-schema-diff --json output (schema_version 1)",
+  "type": "object",
+  "required": ["schema_version", "tool", "version", "exit_code", "mode", "breaking", "compatible", "info", "summary"],
+  "definitions": {
+    "finding": {
+      "type": "object",
+      "required": ["path", "severity", "message"],
+      "properties": {
+        "path": {"type": "string"},
+        "severity": {"type": "string", "enum": ["BREAKING", "compatible", "info"]},
+        "message": {"type": "string"}
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {"type": "integer", "const": 1},
+    "tool": {"type": "string", "const": "json-schema-diff"},
+    "version": {"type": "string"},
+    "exit_code": {"type": "integer", "enum": [0, 1]},
+    "mode": {"type": "string", "enum": ["schema", "openapi"]},
+    "breaking": {"type": "array", "items": {"type": "object", "required": ["path", "severity", "message"]}},
+    "compatible": {"type": "array", "items": {"type": "object", "required": ["path", "severity", "message"]}},
+    "info": {"type": "array", "items": {"type": "object", "required": ["path", "severity", "message"]}},
+    "summary": {
+      "type": "object",
+      "required": ["breaking", "compatible", "info"],
+      "properties": {
+        "breaking": {"type": "integer", "minimum": 0},
+        "compatible": {"type": "integer", "minimum": 0},
+        "info": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

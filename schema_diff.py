@@ -30,13 +30,18 @@ Usage:
     json-schema-diff openapi-v1.json openapi-v2.json --fail-on breaking
     json-schema-diff old.json new.json --markdown >> CHANGELOG.md
 
-Exit codes:
+Exit codes (shared CLI contract, docs/CLI-CONTRACT.md):
     0 = nothing at or above --fail-on (default: breaking)
     1 = at least one breaking change (or compatible change, with --fail-on compatible)
-    2 = usage/parse error
+    2 = usage/input error (bad arguments, a file that is missing, unreadable or not valid JSON,
+        a plain schema compared with an OpenAPI spec)
+    3 = unexpected runtime error
+
+--json prints one object with schema_version, tool, version and exit_code; --quiet prints
+nothing on stdout.
 """
 
-__version__ = "1.3.1"
+__version__ = "1.4.0"
 
 import argparse
 import json
@@ -695,10 +700,19 @@ def markdown(breaking, compatible, info, old_name, new_name):
 
 
 def main(argv=None):
+    """Entry point. Any unexpected exception is a runtime error (exit 3), never a bare traceback exit 1."""
+    try:
+        return _main(argv)
+    except Exception as exc:  # SystemExit (argparse usage errors, exit 2) is not an Exception
+        print("json-schema-diff: error: %s: %s" % (type(exc).__name__, exc), file=sys.stderr)
+        return 3
+
+
+def _main(argv=None):
     parser = argparse.ArgumentParser(prog="json-schema-diff",
                                      description="JSON Schema / OpenAPI breaking-change detector",
                                      epilog="Exit codes: 0 nothing at/above --fail-on, 1 breaking (or compatible) "
-                                            "changes, 2 usage/parse error.")
+                                            "changes, 2 usage/input error, 3 unexpected error.")
     parser.add_argument("--version", action="version", version="%(prog)s " + __version__)
     parser.add_argument("old_schema", help="path to the previous/baseline JSON Schema or OpenAPI (JSON) file")
     parser.add_argument("new_schema", help="path to the new/candidate JSON Schema or OpenAPI (JSON) file")
@@ -710,6 +724,8 @@ def main(argv=None):
                         help="1.x flag, kept as an alias: exit 1 on BREAKING changes (already the default; "
                              "with --fail-on never it still gates on BREAKING)")
     parser.add_argument("--quiet-info", action="store_true", help="suppress informational findings in text output")
+    parser.add_argument("-q", "--quiet", action="store_true",
+                        help="print nothing on stdout; the exit code (and errors on stderr) are the result")
     args = parser.parse_args(argv)
 
     try:
@@ -733,9 +749,19 @@ def main(argv=None):
     compatible = [f for f in findings if f.severity == COMPATIBLE]
     info = [f for f in findings if f.severity == INFO]
 
-    if args.json:
+    if args.fail_on == "never" and not args.fail_on_breaking:
+        code = 0
+    elif breaking or (args.fail_on == "compatible" and compatible):
+        code = 1
+    else:
+        code = 0
+
+    if args.quiet:
+        pass
+    elif args.json:
         print(json.dumps({
-            "version": __version__, "mode": mode,
+            "schema_version": 1, "tool": "json-schema-diff", "version": __version__, "exit_code": code,
+            "mode": mode,
             "breaking": [f.to_dict() for f in breaking],
             "compatible": [f.to_dict() for f in compatible],
             "info": [f.to_dict() for f in info],
@@ -751,12 +777,7 @@ def main(argv=None):
                 print(f)
             print()
             print(f"Summary: {len(breaking)} breaking, {len(compatible)} compatible, {len(info)} informational")
-
-    if args.fail_on == "never" and not args.fail_on_breaking:
-        return 0
-    if breaking or (args.fail_on == "compatible" and compatible):
-        return 1
-    return 0
+    return code
 
 
 if __name__ == "__main__":

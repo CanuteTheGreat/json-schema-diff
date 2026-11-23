@@ -71,7 +71,7 @@ optional response field doesn't.
 
 ```sh
 pipx install git+https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff.git        # latest release branch; puts `json-schema-diff` on PATH
-pipx install git+https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff.git@v1.3.1  # a pinned release
+pipx install git+https://git.canutethegreat.com/CanuteTheGreat/json-schema-diff.git@v1.4.0  # a pinned release
 brew install canutethegreat/errant-tools/json-schema-diff   # after: brew tap canutethegreat/errant-tools https://git.canutethegreat.com/CanuteTheGreat/homebrew-errant-tools
 scoop install errant-tools/json-schema-diff                 # after: scoop bucket add errant-tools https://git.canutethegreat.com/CanuteTheGreat/scoop-errant-tools
 ```
@@ -92,13 +92,18 @@ json-schema-diff old.json new.json --markdown >> CHANGELOG.md     # changelog se
 json-schema-diff old.json new.json --fail-on never                # report only
 ```
 
-Exit codes (same convention as every Errant Solutions tool):
+Exit codes (the shared Errant Solutions CLI contract, see [docs/CLI-CONTRACT.md](docs/CLI-CONTRACT.md)):
 
 | Code | Meaning |
 |---|---|
 | 0 | nothing at or above `--fail-on` (default `breaking`) |
 | 1 | at least one BREAKING change (or any compatible change with `--fail-on compatible`) |
-| 2 | usage/parse error, or one file is OpenAPI and the other a plain schema |
+| 2 | usage/input error: bad arguments, a missing, unreadable or invalid JSON file, or one file is OpenAPI and the other a plain schema |
+| 3 | unexpected runtime error (message on stderr) |
+
+`--json` prints one object: `schema_version` (currently 1), `tool`, `version`, `exit_code`, `mode`, `breaking`, `compatible`, `info` and `summary`;
+its JSON Schema is [schema/json-schema-diff.schema.json](schema/json-schema-diff.schema.json). `--quiet` (`-q`) prints nothing on stdout, so the
+exit code is the whole answer; errors always go to stderr.
 
 1.x note: the tool used to exit 0 unless `--fail-on-breaking` was given; it now gates on
 BREAKING by default (`--fail-on-breaking` is still accepted).

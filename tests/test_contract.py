@@ -242,7 +242,7 @@ class TestOutputs(Base):
 
     def test_json(self):
         code, d, f = self.findings(self.OLD, self.NEW)
-        self.assertEqual(set(d), {"version", "mode", "breaking", "compatible", "info", "summary"})
+        self.assertEqual(set(d), {"schema_version", "tool", "version", "exit_code", "mode", "breaking", "compatible", "info", "summary"})
         self.assertEqual((d["mode"], d["summary"]), ("schema", {"breaking": 1, "compatible": 2, "info": 1}))
         self.assertEqual(d["breaking"][0], {"path": "b", "severity": "BREAKING", "message": f["breaking"][0][1]})
         self.assertEqual(d["info"][0]["severity"], "info")
